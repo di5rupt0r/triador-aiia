@@ -63,7 +63,7 @@ func (s *AnalysisService) Analyze(ctx context.Context, req domain.AnalysisReques
 	}
 
 	if err := llmResp.validate(); err != nil {
-		return nil, fmt.Errorf("llm response failed validation: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrValidation, err)
 	}
 
 	return &domain.AnalysisResult{
