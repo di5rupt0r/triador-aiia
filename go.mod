@@ -1,5 +1,20 @@
 module github.com/di5rupt0r/triador-aiia
 
-go 1.23
+go 1.24
 
-require github.com/mattn/go-sqlite3 v1.14.44
+require (
+	github.com/invopop/jsonschema v0.14.0
+	github.com/mattn/go-sqlite3 v1.14.44
+	github.com/openai/openai-go/v3 v3.37.0
+)
+
+require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.2 // indirect
+	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
+)

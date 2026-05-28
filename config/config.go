@@ -6,9 +6,11 @@ import (
 )
 
 type Config struct {
-	OpenAIAPIKey string
-	DatabasePath string
-	ServerPort   string
+	OpenAIAPIKey  string
+	OpenAIBaseURL string
+	OpenAIModel   string
+	DatabasePath  string
+	ServerPort    string
 }
 
 func Load() (*Config, error) {
@@ -22,14 +24,26 @@ func Load() (*Config, error) {
 		dbPath = "./triador-aiia.db"
 	}
 
+	baseURL := os.Getenv("OPENAI_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.openai.com/v1"
+	}
+
+	model := os.Getenv("OPENAI_MODEL")
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	return &Config{
-		OpenAIAPIKey: apiKey,
-		DatabasePath: dbPath,
-		ServerPort:   port,
+		OpenAIAPIKey:  apiKey,
+		OpenAIBaseURL: baseURL,
+		OpenAIModel:   model,
+		DatabasePath:  dbPath,
+		ServerPort:    port,
 	}, nil
 }
