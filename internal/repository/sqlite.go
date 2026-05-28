@@ -17,6 +17,10 @@ func NewSQLiteDB(path string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
+	
+	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
 
 	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("run migrations: %w", err)
