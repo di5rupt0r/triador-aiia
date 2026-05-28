@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/di5rupt0r/triador-aiia/config"
+	"github.com/di5rupt0r/triador-aiia/internal/repository"
 )
 
 func main() {
@@ -11,5 +12,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("config error: %v", err)
 	}
-	_ = cfg
+
+	db, err := repository.NewSQLiteDB(cfg.DatabasePath)
+	if err != nil {
+		log.Fatalf("database error: %v", err)
+	}
+	defer db.Close()
+
+	_ = db
 }
