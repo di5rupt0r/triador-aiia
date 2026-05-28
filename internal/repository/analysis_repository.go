@@ -57,6 +57,12 @@ func (r *AnalysisRepository) Save(ctx context.Context, a *domain.Analysis) error
 		return fmt.Errorf("commit transaction: %w", err)
 	}
 
+	var createdAtUnix int64
+	if err := r.db.QueryRowContext(ctx, `SELECT created_at FROM analyses WHERE id = ?`, a.ID).Scan(&createdAtUnix); err != nil {
+		return fmt.Errorf("read created_at: %w", err)
+	}
+	a.CreatedAt = time.Unix(createdAtUnix, 0).UTC()
+
 	return nil
 }
 
