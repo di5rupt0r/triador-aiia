@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand"
+	"time"
 
 	"github.com/invopop/jsonschema"
 	"github.com/openai/openai-go/v3"
@@ -54,30 +57,47 @@ func NewOpenAIClient(apiKey, baseURL, model string) *OpenAIClient {
 }
 
 func (c *OpenAIClient) Complete(ctx context.Context, systemPrompt, userMessage string) (string, error) {
-	resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(c.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(userMessage),
-		},
-		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
-			OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
-				JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-					Name:   "resume_analysis",
-					Schema: analysisSchema,
-					Strict: openai.Bool(true),
+	const maxAttempts = 3
+	const baseDelay = 500 * time.Millisecond
+
+	var lastErr error
+	for attempt := range maxAttempts {
+		resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(c.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(systemPrompt),
+				openai.UserMessage(userMessage),
+			},
+			ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+				OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
+					JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
+						Name:   "resume_analysis",
+						Schema: analysisSchema,
+						Strict: openai.Bool(true),
+					},
 				},
 			},
-		},
-		Temperature: openai.Float(0.2),
-	})
-	if err != nil {
-		return "", fmt.Errorf("openai completion: %w", err)
+			Temperature: openai.Float(0.2),
+		})
+		if err == nil {
+			if len(resp.Choices) == 0 {
+				return "", fmt.Errorf("openai returned no choices")
+			}
+			return resp.Choices[0].Message.Content, nil
+		}
+
+		lastErr = err
+		if attempt < maxAttempts-1 {
+			jitter := time.Duration(rand.Int63n(int64(baseDelay)))
+			delay := time.Duration(math.Pow(2, float64(attempt)))*baseDelay + jitter
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(delay):
+			}
+		}
 	}
 
-	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("openai returned no choices")
-	}
-
-	return resp.Choices[0].Message.Content, nil
+	return "", fmt.Errorf("openai completion after %d attempts: %w", maxAttempts, lastErr)
 }
+
