@@ -13,7 +13,8 @@ Ferramenta de análise de aderência de currículos a vagas via LLM. Recebe text
 ```mermaid
 graph LR
     A["Next.js (Client)"] -->|HTTP/JSON| B["Go API"]
-    B -->|Structured Output| C["LLM Provider"]
+    B -->|"chat/completions (json_schema)"| C["LLM Provider"]
+    C -->|structured JSON| B
     B -->|SQL| D["SQLite"]
 ```
 
@@ -67,6 +68,7 @@ O backend segue separação de camadas intencional: **handler** HTTP recebe e va
 - Node.js 18+
 - `gcc` (necessário para compilação do `go-sqlite3` via CGO)
 - API key de provedor OpenAI-compatible (OpenAI, Groq, Together, OpenRouter, etc.)
+- Docker + Docker Compose (opcional — para setup containerizado)
 
 ## Local Setup
 
@@ -91,6 +93,16 @@ npm install
 npm run dev
 # abre em http://localhost:3000
 ```
+
+### Com Docker Compose
+
+```bash
+cp .env.example .env
+# configure OPENAI_API_KEY no .env
+docker compose up --build
+```
+
+Frontend em `http://localhost:3000`, backend em `http://localhost:9000`.
 
 ## Environment Variables
 
@@ -157,13 +169,21 @@ Body de erro sempre no formato `{"error": "mensagem"}`.
 - **Chat Completions API** (não Responses API) — compatibilidade máxima com provedores alternativos que implementam `/v1/chat/completions`
 - **CORS `*`** — adequado para desenvolvimento; deve ser restringido em produção
 - **Frontend atualiza histórico otimisticamente** — após POST bem-sucedido, insere no topo do estado local sem refetch do GET
+- **Retry com backoff exponencial** — 3 tentativas, base 500ms, jitter aleatório, respeita `ctx.Done()` para cancelamento
+
+## Testes
+
+```bash
+# testes unitários do service (mock do LLM — sem chamada real à API)
+go test ./internal/service/...
+```
+
+Cobre: resposta válida, JSON malformado, campos ausentes, fit_score fora de range, skills vazias e falha de infra do LLM — com verificação correta do sentinel `domain.ErrValidation`.
 
 ## Next Steps
 
 - Restringir CORS para domínio específico em produção
-- Retry com backoff exponencial nas chamadas ao LLM
 - Testes de integração cobrindo parsing da saída do LLM com respostas reais
 - Autenticação e rate limiting (fora de escopo do desafio)
 - Streaming da resposta para o frontend via SSE
 - Paginação no endpoint `GET /analyses`
-- Docker Compose para setup com um comando

@@ -2,11 +2,14 @@ package repository
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 func NewSQLiteDB(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", path)
@@ -17,7 +20,7 @@ func NewSQLiteDB(path string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
-	
+
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
 		return nil, fmt.Errorf("enable foreign keys: %w", err)
 	}
@@ -36,7 +39,7 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	for _, path := range migrations {
-		content, err := os.ReadFile(path)
+		content, err := migrationsFS.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", path, err)
 		}
@@ -48,3 +51,4 @@ func runMigrations(db *sql.DB) error {
 
 	return nil
 }
+
